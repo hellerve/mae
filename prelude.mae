@@ -4,11 +4,11 @@
 (def (if c a b)
   (({true a false b} c)))
 
+(def (neg a) (if a (fn () false) (fn () true)))
+
 (def (empty? m) (= {} m))
 
 (def (foldr f e m)
-  (prn m)
-  (prn (this (this m)))
   (if (empty? m)
     (fn () e)
     (fn () (f (this (this m)) (next (this m)) (foldr f e (next m))))))

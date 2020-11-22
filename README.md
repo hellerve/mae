@@ -19,8 +19,8 @@ the fun is in the definitions.
 
 ### booleans.
 
-`true` is any non-empty map. `false` is the empty map. any map can be a
-boolean.
+`true` is the map with one entry. `false` is the empty map. anything else is
+not a boolean (but you can make it one by using `(neg (empty? <map>))`).
 
 ### integers.
 
