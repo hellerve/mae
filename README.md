@@ -1,6 +1,6 @@
 # mae.
 
-*m*aps *a*re *e*verything. an experiment in language construction with an
+**m**aps **a**re **e**verything. an experiment in language construction with an
 inicidental [lisp syntax](#why-lisp-syntax).
 
 ## syntax.
@@ -58,6 +58,11 @@ at your disposal.
 ```clojure
 (def (print-all-keys m) (map (fn (k v) (prn k)) m))
 ```
+
+### functions
+
+if you have pure bounded functions, why not express them as maps instead?
+computation is an illusion of numbers in time anyway.
 
 ## faqs
 
