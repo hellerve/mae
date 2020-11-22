@@ -263,6 +263,7 @@ add = Primitive(add_)
 
 
 def tokenize(s):
+    s = s.replace(",", " ").replace(":", " ")
     special = "(){}[]"
 
     for c in special:
