@@ -18,3 +18,11 @@
 
 (def (filter f m)
   (foldr (fn (k v m) (if (f k v) (fn () (add m {k v})) (fn () m))) {} m))
+
+(def (inc m)
+  (add m {m {}}))
+
+(def (dec m)
+  (if (empty? (next m))
+    (fn () (this m))
+    (fn () (dec (next m)))))
