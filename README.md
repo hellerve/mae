@@ -5,8 +5,15 @@ inicidental [lisp syntax](#why-lisp-syntax).
 
 ## syntax.
 
-we use lisp syntax. definitions use `def`. maps use curly braces. commas and
-colons are whitespace. calling maps is indexing into them.
+we use lisp syntax, kind of. definitions use `def`. maps use curly braces.
+commas and colons are whitespace. calling maps is indexing into them.
+
+functions are infinite maps, i.e. maps that do not precompute. they take
+inputs and produce output. hence, their syntax looks like this:
+
+```
+{(input args) -> (output expression)}
+```
 
 ### why lisp syntax?
 
@@ -44,8 +51,8 @@ conditionals are maps from `true` and `false` to other values. we can thus
 define the function
 
 ```clojure
-(def (if cond a b)
-  (({true a false b} cond))) ; branches are nullary fns
+(def if
+  {(cond a b) -> (({true a false b} cond))}) ; branches are nullary infinite maps
 ```
 
 multi-branch conditionals work the same way, but there is no function for them.
@@ -56,7 +63,7 @@ loops happen when we iterate over maps. you have `foldr`, `map`, and `filter`
 at your disposal.
 
 ```clojure
-(def (print-all-keys m) (map (fn (k v) (prn k)) m))
+(def print-all-keys {(m) -> (map {(k v) -> (prn k)} m)})
 ```
 
 ### functions

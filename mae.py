@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+import atexit
+import itertools
+import os
+import re
+import readline
 import sys
 
 
@@ -7,9 +12,10 @@ class RunError(Exception): pass
 
 
 class Mae:
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, env=None):
         self.parent = parent
         self.vars = {}
+        self.env = env
         if not parent:
             self.globalize()
 
@@ -17,7 +23,6 @@ class Mae:
     def globalize(self):
         self.vars = {
             "def": define,
-            "fn": fn,
             "=": eq,
             "this": ths,
             "next": nxt,
@@ -46,16 +51,12 @@ class Mae:
 
 
 class Expr:
-    def __repr__(self):
-        return self.__str__()
+    pass
 
 
 class Val(Expr):
     def evaluate(self, m):
         return self
-
-    def __repr__(self):
-        return self.__str__()
 
 
 class Var(Expr):
@@ -68,7 +69,7 @@ class Var(Expr):
     def apply(self, m):
         return self.env.evaluate(self.env.lookup(self.name))
 
-    def __str__(self):
+    def __repr__(self):
         return self.name
 
     def __eq__(self, o):
@@ -88,10 +89,10 @@ class Map(Val):
     def apply(self, args, m):
         if len(args) != 1:
             raise RunError(
-                f"map can only applied to one argument (got {args})!"
+                f"map can only applied to one argument (got ({', '.join(args)}))!"
             )
 
-        return self.m[m.evaluate(args[0])]
+        return self.m.get(m.evaluate(args[0]), Map({}))
 
     def this(self):
         l = list(self.m.items())
@@ -109,7 +110,7 @@ class Map(Val):
             return l[0][1]
         return Map(dict(l[1:]))
 
-    def __str__(self):
+    def __repr__(self):
         return str(self.m)
 
     def __eq__(self, o):
@@ -120,24 +121,35 @@ class Map(Val):
 
 
 class Fn(Val):
-    def __init__(self, args, body, env):
+    def __init__(self, args, body):
         self.args = args
         self.body = body
+
+    def evaluate(self, env):
+        return Closure(self, env)
+
+    def __repr__(self):
+        return f"{{({' '.join(str(a) for a in self.args)}) -> {self.body}}}"
+
+
+class Closure(Val):
+    def __init__(self, f, env):
+        self.f = f
         self.env = env
 
     def apply(self, args, env):
         e = self.env
         m = Mae(parent=e)
-        if len(args) != len(self.args):
+        if len(args) != len(self.f.args):
             raise RunError(
-                f"function called with {len(args)} arguments, but expected {len(self.args)}."
+                f"function called with {len(args)} arguments, but expected {len(self.f.args)}."
             )
-        for k, v in zip(self.args, args):
+        for k, v in zip(self.f.args, args):
             m.bind(k.name, env.evaluate(v))
-        return [m.evaluate(e) for e in self.body][-1]
+        return m.evaluate(self.f.body)
 
-    def __str__(self):
-        return f"(fn ({' '.join(str(a) for a in self.args)}) {' '.join(str(b) for b in self.body)})"
+    def __repr__(self):
+        return f"{{({' '.join(str(a) for a in self.f.args)}) -> {self.f.body}}}"
 
 
 class Primitive(Val):
@@ -147,7 +159,7 @@ class Primitive(Val):
     def apply(self, args, env):
         return self.f(env, args)
 
-    def __str__(self):
+    def __repr__(self):
         return "<primitive>"
 
 
@@ -157,9 +169,13 @@ class App(Expr):
         self.args = args
 
     def evaluate(self, env):
-        return env.evaluate(self.f).apply(self.args, env)
+        old = env.env
+        env.env = str(self)
+        res = env.evaluate(self.f).apply(self.args, env)
+        env.env = old
+        return res
 
-    def __str__(self):
+    def __repr__(self):
         return f"({self.f} {' '.join(str(a) for a in self.args)})"
 
     def __getitem__(self, key):
@@ -183,35 +199,13 @@ class App(Expr):
 
 def def_(m, args):
     l = len(args)
-    if l < 2:
+    if l != 2:
         raise RunError(
-            f"def takes at least two arguments, {l} given."
+            f"def takes two arguments, {l} given."
         )
-    if type(args[0]) is not App:
-        if l != 2:
-            raise RunError(
-                f"def of a variable takes at least two arguments, {l} given."
-            )
-        v = m.evaluate(args[1])
-        m.bind(args[0].name, v)
-        return v
-    v = Fn(args[0][1:], args[1:], m)
-    v.env = m
-    m.bind(args[0][0], v)
+    v = m.evaluate(args[1])
+    m.bind(args[0].name, v)
     return v
-
-
-def fn_(m, args):
-    l = len(args)
-    if l < 2:
-        raise RunError(
-            f"fn takes at least two arguments, {l} given."
-        )
-    if type(args[0]) is not App:
-        raise RunError(
-            f"fn takes a list as first argument."
-        )
-    return Fn(args[0].to_list(), args[1:], m)
 
 
 def eq_(m, args):
@@ -254,7 +248,6 @@ def add_(m, args):
 
 
 define = Primitive(def_)
-fn = Primitive(fn_)
 eq = Primitive(eq_)
 nxt = Primitive(nxt_)
 ths = Primitive(ths_)
@@ -294,6 +287,12 @@ def build_map(l):
     return Map(dict(enum_(l)))
 
 
+def build_fn(l):
+    if len(l) != 3:
+        raise ParseError("Malformed function definition: {l}.")
+    return Fn(l[0].to_list(), l[2])
+
+
 def read_tokens(tokens):
     openers = "({["
     closers = {
@@ -304,7 +303,7 @@ def read_tokens(tokens):
     builders = {
         "(": lambda l: App(l[0], l[1:]) if l else App(None, []),
         "[": build_map,
-        "{": lambda l: Map(dict(pairs(l))),
+        "{": lambda l: build_fn(l) if len(l) > 2 and l[1] == "->" else Map(dict(pairs(l))),
     }
     if not tokens:
         raise ParseError("Unclosed expression.")
@@ -327,7 +326,12 @@ def read_tokens(tokens):
         return Var(token)
 
 
+def strip_comments(s):
+    return re.sub(";.*", "", s)
+
+
 def parse(s):
+    s = strip_comments(s)
     tokens = tokenize(s)
 
     res = []
@@ -337,8 +341,37 @@ def parse(s):
     return res
 
 
+class Completer:
+    def __init__(self, m):
+        self.m = m
+
+    def complete(self, text, state):
+        if state == 0:
+            if text:
+                self.matches = [s for s in self.m.vars if s.startswith(text)]
+            else:
+                self.matches = self.m.vars.keys()
+
+        if len(self.matches) > state:
+            return self.matches[state]
+
+
+def setup_readline(m):
+    histfile = os.path.join(os.path.expanduser("~"), ".mae_history")
+    try:
+        readline.read_history_file(histfile)
+        readline.set_history_length(1000)
+    except FileNotFoundError:
+        pass
+
+    atexit.register(readline.write_history_file, histfile)
+
+    readline.set_completer(Completer(m).complete)
+
+
 def repl():
     m = Mae()
+    setup_readline(m)
     while True:
         try:
             expr = input("> ")

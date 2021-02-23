@@ -1,28 +1,42 @@
 (def true {{} {}})
 (def false {})
 
-(def (if c a b)
-  (({true a false b} c)))
+(def if
+  {(c a b) -> (({true a false b} c))})
 
-(def (neg a) (if a (fn () false) (fn () true)))
+(def neg
+  {(a) -> (if a {() -> false} {() -> true})})
 
-(def (empty? m) (= {} m))
+(def empty?
+  {(m) -> (= {} m)})
 
-(def (foldr f e m)
-  (if (empty? m)
-    (fn () e)
-    (fn () (f (this (this m)) (next (this m)) (foldr f e (next m))))))
+(def size
+  {(m) ->
+    (if (empty? m)
+      {() -> 0}
+      {() -> (inc (size (next m)))})})
 
-(def (map f m)
-  (foldr (fn (k v m) (add m (f k v))) {} m))
+(def foldr
+  {(f e m) ->
+     (if (empty? m)
+       {() -> e}
+       {() ->
+         (if (= (size m) 1)
+           {() -> (f (this m) (next m) m)}
+           {() -> (f (this (this m)) (next (this m)) (foldr f e (next m)))})})})
 
-(def (filter f m)
-  (foldr (fn (k v m) (if (f k v) (fn () (add m {k v})) (fn () m))) {} m))
+(def map
+  {(f m) -> (foldr {(k v m) -> (add m (f k v))} {} m)})
 
-(def (inc m)
-  (add m {m {}}))
+(def filter
+  {(f m) ->
+    (foldr {(k v m) -> (if (f k v) {() -> (add m {k v})} {() -> m})} {} m)})
 
-(def (dec m)
-  (if (empty? (next m))
-    (fn () (this m))
-    (fn () (dec (next m)))))
+(def inc
+  {(m) -> (add m {m {}})})
+
+(def dec
+  {(m) ->
+     (if (empty? (next m))
+       {() -> (this m)}
+       {() -> (dec (next m))})})
