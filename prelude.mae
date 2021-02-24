@@ -1,14 +1,28 @@
 (def true {{} {}})
 (def false {})
-
-(def if
-  {(c a b) -> (({true a false b} c))})
-
-(def neg
-  {(a) -> (if a {() -> false} {() -> true})})
+(def empty {})
 
 (def empty?
-  {(m) -> (= {} m)})
+  {(m) -> (= empty m)})
+
+(def neg {true false false true})
+
+(def truthy? {(m) -> (neg (empty? m))})
+
+(def if
+  {(cond then else) -> (({true then false else} cond))})
+
+(def inc
+  {(n) -> (add n {n {}})})
+
+(def dec
+  {(n) -> (filter {(k v) -> (neg (= (rem n k) k))} n)})
+
+(def +
+  {(m n) -> (foldr {(k v acc) -> (inc acc)} m n)})
+
+(def -
+  {(m n) -> (foldr {(k v acc) -> (dec acc)} m n)})
 
 (def size
   {(m) ->
@@ -22,7 +36,7 @@
        {() -> e}
        {() ->
          (if (= (size m) 1)
-           {() -> (f (this m) (next m) m)}
+           {() -> (f (this m) (next m) e)}
            {() -> (f (this (this m)) (next (this m)) (foldr f e (next m)))})})})
 
 (def map
@@ -31,12 +45,3 @@
 (def filter
   {(f m) ->
     (foldr {(k v m) -> (if (f k v) {() -> (add m {k v})} {() -> m})} {} m)})
-
-(def inc
-  {(m) -> (add m {m {}})})
-
-(def dec
-  {(m) ->
-     (if (empty? (next m))
-       {() -> (this m)}
-       {() -> (dec (next m))})})

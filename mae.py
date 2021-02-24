@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import atexit
+import copy
 import itertools
 import os
 import re
@@ -12,10 +13,9 @@ class RunError(Exception): pass
 
 
 class Mae:
-    def __init__(self, parent=None, env=None):
+    def __init__(self, parent=None):
         self.parent = parent
         self.vars = {}
-        self.env = env
         if not parent:
             self.globalize()
 
@@ -28,6 +28,7 @@ class Mae:
             "next": nxt,
             "prn": prn,
             "add": add,
+            "rem": rem,
         }
         [self.evaluate(e) for e in PRELUDE]
 
@@ -169,11 +170,7 @@ class App(Expr):
         self.args = args
 
     def evaluate(self, env):
-        old = env.env
-        env.env = str(self)
-        res = env.evaluate(self.f).apply(self.args, env)
-        env.env = old
-        return res
+        return env.evaluate(self.f).apply(self.args, env)
 
     def __repr__(self):
         return f"({self.f} {' '.join(str(a) for a in self.args)})"
@@ -247,12 +244,23 @@ def add_(m, args):
     return Map(res)
 
 
+def rem_(m, args):
+    l = len(args)
+    if l != 2:
+        raise RunError(f"rem takes two arguments, {l} given.")
+    res = copy.deepcopy(m.evaluate(args[0]).m)
+    k = m.evaluate(args[1])
+    del res[k]
+    return Map(res)
+
+
 define = Primitive(def_)
 eq = Primitive(eq_)
 nxt = Primitive(nxt_)
 ths = Primitive(ths_)
 prn = Primitive(prn_)
 add = Primitive(add_)
+rem = Primitive(rem_)
 
 
 def tokenize(s):
