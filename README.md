@@ -1,4 +1,4 @@
-# mae.
+# `{}` mae. `{}`
 
 **m**aps **a**re **e**verything. an experiment in language construction with an
 inicidental [lisp syntax](#why-lisp-syntax).
