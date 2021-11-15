@@ -8,8 +8,12 @@ import readline
 import sys
 
 
-class ParseError(Exception): pass
-class RunError(Exception): pass
+class ParseError(Exception):
+    pass
+
+
+class RunError(Exception):
+    pass
 
 
 class Mae:
@@ -18,7 +22,6 @@ class Mae:
         self.vars = {}
         if not parent:
             self.globalize()
-
 
     def globalize(self):
         self.vars = {
@@ -179,13 +182,9 @@ class App(Expr):
         if key == 0:
             return self.f
         if type(key) is slice:
-            s = slice(
-                key.start-1 if key.start else None,
-                key.stop,
-                key.step
-            )
+            s = slice(key.start - 1 if key.start else None, key.stop, key.step)
             return self.args[s]
-        return self.args[key-1]
+        return self.args[key - 1]
 
     def to_list(self):
         l = self.args
@@ -197,9 +196,7 @@ class App(Expr):
 def def_(m, args):
     l = len(args)
     if l != 2:
-        raise RunError(
-            f"def takes two arguments, {l} given."
-        )
+        raise RunError(f"def takes two arguments, {l} given.")
     v = m.evaluate(args[1])
     m.bind(args[0].name, v)
     return v
@@ -208,9 +205,7 @@ def def_(m, args):
 def eq_(m, args):
     l = len(args)
     if l != 2:
-        raise RunError(
-            f"= takes two arguments, {l} given."
-        )
+        raise RunError(f"= takes two arguments, {l} given.")
     if m.evaluate(args[0]) == m.evaluate(args[1]):
         return Map({Map({}): Map({})})
     else:
@@ -276,12 +271,12 @@ def tokenize(s):
 def pairs(l):
     if len(l) % 2 != 0:
         raise ParseError("Map length not even.")
-    for i in range (0, len(l), 2):
-        yield l[i:i+2]
+    for i in range(0, len(l), 2):
+        yield l[i : i + 2]
 
 
-
-def empty(): return Map({})
+def empty():
+    return Map({})
 
 
 def make_int(i):
@@ -292,6 +287,7 @@ def build_map(l):
     def enum_(l):
         for i, v in enumerate(l):
             yield make_int(i), v
+
     return Map(dict(enum_(l)))
 
 
@@ -311,7 +307,9 @@ def read_tokens(tokens):
     builders = {
         "(": lambda l: App(l[0], l[1:]) if l else App(None, []),
         "[": build_map,
-        "{": lambda l: build_fn(l) if len(l) > 2 and l[1] == "->" else Map(dict(pairs(l))),
+        "{": lambda l: build_fn(l)
+        if len(l) > 2 and l[1] == "->"
+        else Map(dict(pairs(l))),
     }
     if not tokens:
         raise ParseError("Unclosed expression.")
@@ -412,7 +410,7 @@ with open("prelude.mae") as f:
     PRELUDE = parse(f.read())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     if len(sys.argv) == 1:
         repl()
     elif len(sys.argv) == 2:
