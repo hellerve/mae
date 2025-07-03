@@ -93,7 +93,7 @@ class Map(Val):
     def apply(self, args, m):
         if len(args) != 1:
             raise RunError(
-                f"map can only applied to one argument (got ({', '.join(args)}))!"
+                f"map can only applied to one argument (got ({', '.join(str(a) for a in args)}))!"
             )
 
         return self.m.get(m.evaluate(args[0]), Map({}))
