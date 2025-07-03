@@ -406,7 +406,8 @@ def file_(name):
         [m.evaluate(e) for e in parse(f.read())]
 
 
-with open("prelude.mae") as f:
+prelude_path = os.path.join(os.path.dirname(__file__), "prelude.mae")
+with open(prelude_path) as f:
     PRELUDE = parse(f.read())
 
 
