@@ -1,7 +1,15 @@
 # `{}` mae. `{}`
 
 **m**aps **a**re **e**verything. an experiment in language construction with an
-inicidental [lisp syntax](#why-lisp-syntax).
+incidental [lisp syntax](#why-lisp-syntax).
+
+## usage.
+
+start the repl with `python mae.py`.
+
+run a script with `python mae.py <file>`.
+
+`prelude.mae` is automatically loaded at startup.
 
 ## syntax.
 
